@@ -9,7 +9,7 @@ from rich.panel import Panel
 from loguru import logger
 from bot.config import load_config
 from bot.logging_config import setup_logging
-from bot.client import BinanceFuturesClient
+from bot.client import BinanceClient
 
 app = typer.Typer(
     name="trading-bot",
@@ -40,7 +40,7 @@ def test_connection() -> None:
     console.print(Panel("[bold yellow]Testing connection to Binance Futures Testnet...[/]"))
     try:
         config = load_config()
-        client = BinanceFuturesClient(config)
+        client = BinanceClient(config)
         client.connect()
         console.print("[bold green][OK] Connection test completed successfully (Mocked)![/]")
     except Exception as e:
