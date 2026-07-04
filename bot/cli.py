@@ -63,19 +63,21 @@ def render_order_table(
 
 def render_result_panel(result: OrderResult) -> None:
     """Render the post-execution OrderResult details inside a Rich Panel."""
-    content = Text()
     if result.is_success:
         title = "[bold green]Order Execution Successful[/bold green]"
         border_style = "green"
-        content.append(f"{result.message}\n\n", style="bold green")
+        msg_style = "bold green"
     else:
         title = "[bold red]Order Execution Failed[/bold red]"
         border_style = "red"
-        content.append(f"{result.message}\n\n", style="bold red")
+        msg_style = "bold red"
 
-    content.append(f"[bold cyan]Order Summary:[/bold cyan]\n{result.order_summary}\n\n")
-    content.append(f"[bold magenta]Execution Details:[/bold magenta]\n{result.execution_summary}")
-
+    markup = (
+        f"[{msg_style}]{result.message}[/{msg_style}]\n\n"
+        f"[bold cyan]Order Summary:[/bold cyan]\n{result.order_summary}\n\n"
+        f"[bold magenta]Execution Details:[/bold magenta]\n{result.execution_summary}"
+    )
+    content = Text.from_markup(markup)
     console.print(Panel(content, title=title, border_style=border_style, expand=True))
 
 
