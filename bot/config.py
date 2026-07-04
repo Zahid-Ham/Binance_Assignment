@@ -1,51 +1,72 @@
-import os
+"""Configuration loader and validator for the Trading Bot.
+
+Loads variables from environment or .env files using Pydantic Settings
+and validates required parameters.
+"""
+
 from typing import Optional
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, field_validator, SecretStr
-from bot.exceptions import ConfigurationError
+from pydantic import SecretStr, field_validator, ValidationError
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from bot.exceptions import ConfigurationException
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
 
-class Settings(BaseModel):
+class Settings(BaseSettings):
+    """Application settings schema and loader.
+
+    Validates presence of API credentials and URL formatting.
     """
-    Application settings and validation using Pydantic.
-    Loads values from environment variables.
-    """
-    BINANCE_API_KEY: SecretStr = Field(
-        default_factory=lambda: SecretStr(os.getenv("BINANCE_API_KEY", ""))
-    )
-    BINANCE_SECRET_KEY: SecretStr = Field(
-        default_factory=lambda: SecretStr(os.getenv("BINANCE_SECRET_KEY", ""))
-    )
-    BASE_URL: str = Field(
-        default_factory=lambda: os.getenv("BASE_URL", "https://testnet.binancefuture.com")
-    )
-    LOG_LEVEL: str = Field(
-        default_factory=lambda: os.getenv("LOG_LEVEL", "INFO")
+    BINANCE_API_KEY: SecretStr
+    BINANCE_SECRET_KEY: SecretStr
+    BASE_URL: str = "https://testnet.binancefuture.com"
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
     )
 
     @field_validator("BINANCE_API_KEY", "BINANCE_SECRET_KEY")
     @classmethod
-    def validate_keys(cls, v: SecretStr) -> SecretStr:
-        if not v.get_secret_value():
-            raise ValueError("API Key and Secret Key must be set.")
+    def validate_non_empty(cls, v: SecretStr) -> SecretStr:
+        """Verify the secrets are not empty strings."""
+        if not v.get_secret_value().strip():
+            raise ValueError("Value cannot be blank or empty.")
         return v
 
     @field_validator("BASE_URL")
     @classmethod
     def validate_url(cls, v: str) -> str:
-        if not v.startswith("https://") and not v.startswith("http://"):
-            raise ValueError("BASE_URL must be a valid URL starting with http:// or https://")
-        return v
+        """Ensure the BASE_URL has a correct HTTP/HTTPS scheme."""
+        v_stripped = v.strip()
+        if not (v_stripped.startswith("https://") or v_stripped.startswith("http://")):
+            raise ValueError("URL must start with http:// or https://")
+        return v_stripped
 
 
 def load_config() -> Settings:
-    """
-    Load settings and raise ConfigurationError if validation fails.
+    """Load settings and raise ConfigurationException on validation errors.
+
+    Returns:
+        Settings: Validated configuration settings.
+
+    Raises:
+        ConfigurationException: If credentials are missing or invalid.
     """
     try:
         return Settings()
+    except ValidationError as e:
+        missing_fields = []
+        for error in e.errors():
+            loc = " -> ".join(str(x) for x in error.get("loc", []))
+            msg = error.get("msg", "Validation failed")
+            missing_fields.append(f"{loc}: {msg}")
+        errors_str = "; ".join(missing_fields)
+        raise ConfigurationException(
+            f"Configuration load failed: {errors_str}"
+        ) from e
     except Exception as e:
-        raise ConfigurationError(f"Failed to load configuration: {e}") from e
+        raise ConfigurationException(f"Unexpected configuration error: {e}") from e

@@ -42,9 +42,9 @@ def test_connection() -> None:
         config = load_config()
         client = BinanceFuturesClient(config)
         client.connect()
-        console.print("[bold green]✔ Connection test completed successfully (Mocked)![/]")
+        console.print("[bold green][OK] Connection test completed successfully (Mocked)![/]")
     except Exception as e:
-        console.print(f"[bold red]✘ Connection check failed: {e}[/]")
+        console.print(f"[bold red][ERROR] Connection check failed: {e}[/]")
         raise typer.Exit(code=1)
 
 

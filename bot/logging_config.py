@@ -1,47 +1,80 @@
+"""Logging configuration setup for the Trading Bot.
+
+Uses Loguru to structure logging outputs to both console and rotating log files.
+"""
+
 import sys
 from pathlib import Path
+from typing import Any
 from loguru import logger
 
-# Base directory for logs
+# Automatically create logs folder
 LOGS_DIR = Path(__file__).resolve().parents[1] / "logs"
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Define the log file path
+LOG_FILE_PATH = LOGS_DIR / "trading_bot.log"
 
 
-def setup_logging(log_level: str = "INFO") -> None:
+def setup_logging(log_level: str = "DEBUG") -> None:
+    """Configure loguru logger handlers.
+
+    Configures a colorized console output and a rotating file log.
+
+    Args:
+        log_level: Minimum logging level to capture. Defaults to "DEBUG".
     """
-    Configure loguru logger with beautiful output using rich
-    and daily rotating log files.
-    """
-    # Create logs directory if it doesn't exist
-    LOGS_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Clear default logger handlers
+    # Clear any default handler
     logger.remove()
 
-    # Log format structure
-    log_format = (
-        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+    # Formats containing: Date, Time, Level, Module, Function, Line Number, Message
+    console_format = (
+        "<green>{time:YYYY-MM-DD}</green> <cyan>{time:HH:mm:ss.SSS}</cyan> | "
         "<level>{level: <8}</level> | "
-        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+        "<magenta>{name}</magenta>:<magenta>{function}</magenta>:<magenta>{line}</magenta> - "
         "<level>{message}</level>"
     )
 
-    # 1. Console handler with colors
+    file_format = (
+        "{time:YYYY-MM-DD} {time:HH:mm:ss.SSS} | "
+        "{level: <8} | "
+        "{name}:{function}:{line} - "
+        "{message}"
+    )
+
+    # Console Logger (Standard error) with color tags
     logger.add(
         sys.stderr,
-        format=log_format,
+        format=console_format,
         level=log_level,
         colorize=True,
+        backtrace=True,
+        diagnose=True,
     )
 
-    # 2. File handler with daily rotation
-    log_file_path = LOGS_DIR / "trading_bot.log"
+    # File Logger with 5MB rotation and 14 days retention
     logger.add(
-        log_file_path,
-        format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}",
+        LOG_FILE_PATH,
+        format=file_format,
         level=log_level,
-        rotation="00:00",  # Rotates every day at midnight
-        retention="30 days",  # Keep logs for 30 days
-        compression="zip",  # Compress older logs
+        rotation="5 MB",
+        retention="14 days",
+        compression="zip",
+        encoding="utf-8",
     )
 
-    logger.debug("Logging configuration initialized successfully.")
+
+def get_logger(name: str) -> Any:
+    """Return a logger bound with a specific module or component name.
+
+    Args:
+        name: Name of the module or class requesting the logger.
+
+    Returns:
+        Loguru logger bound with the component name.
+    """
+    return logger.bind(logger_name=name)
+
+
+# Run setup_logging on module load with default level
+setup_logging("DEBUG")

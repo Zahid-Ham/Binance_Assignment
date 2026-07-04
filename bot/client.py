@@ -8,7 +8,7 @@ and rates limiting with the Binance Futures Testnet endpoint.
 from typing import Dict, Any, Optional
 from loguru import logger
 from bot.config import Settings
-from bot.exceptions import APIConnectionError
+from bot.exceptions import APIException
 
 
 class BinanceFuturesClient:
@@ -34,7 +34,7 @@ class BinanceFuturesClient:
         Establish connection to the Binance Futures Testnet.
 
         Raises:
-            APIConnectionError: If connectivity or credentials authentication fails.
+            APIException: If connectivity or credentials authentication fails.
         """
         # Placeholder for connection establishment using python-binance
         logger.info("Connecting to Binance Futures API...")
